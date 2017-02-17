@@ -1,0 +1,32 @@
+#!/bin/bash
+
+: '
+  Authors Ismael Chasco ismael@ichasco.com Lander Usategui lander.usategui@gmail.com
+'
+set -e
+
+read -p "Name of interface: " INTERFACE_NAME
+
+CURRENT_INTERFACES=`ls /sys/class/net`
+
+# Check interfaces
+for i in $CURRENT_INTERFACES; do
+  if [ "${INTERFACE_NAME}" = "$i" ]; then
+    echo "Invalid interface name..."
+  fi
+done
+
+read -p "Device type: " DEV_TYPE
+
+if [ "${DEV_TYPE}" != "tun" ] && [ "${DEV_TYPE}" != "tap" ]; then
+  echo "Device type is not valid, try with tun or tap"
+else
+
+  read -p "IP/FQDN of your VPN server: " VPN_SERVER_FQDN
+
+  VPN_SERVER_PORT=`netstat -putan4 | grep openvpn | cut -d ':' -f2 | awk '{print $1}'`
+
+  CLIENT_PORT=1195
+  read -p "Client port default 1195: " CLIENT_PORT
+
+fi
