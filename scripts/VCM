@@ -1,32 +1,117 @@
 #!/bin/bash
 
 : '
-  Authors Ismael Chasco ismael@ichasco.com Lander Usategui lander.usategui@gmail.com
+  Authors Ismael Chasco ismael@ichasco.com, Lander Usategui lander.usategui@gmail.com
 '
 set -e
 
-read -p "Name of interface: " INTERFACE_NAME
 
-CURRENT_INTERFACES=`ls /sys/class/net`
+#################
+#  FUNCTIONS    #
+#################
 
-# Check interfaces
-for i in $CURRENT_INTERFACES; do
-  if [ "${INTERFACE_NAME}" = "$i" ]; then
-    echo "Invalid interface name..."
+## CHECK functions ##
+function callback_interface()
+{
+  # Interfaces
+  if [ $INVALID_INTERFACE -eq 1 ]; then
+    echo "Please, select insert a valid interface..."
+    select_interface
+  else
+    select_device
   fi
-done
+}
 
-read -p "Device type: " DEV_TYPE
+function callback_device()
+{
+  # Device
+  if [ $INVALID_DEVICE -eq 1 ]; then
+    echo "Device type is not valid, try with \"tun\" or \"tap\""
+    select_device
+  else
+    choose_FQDN
+  fi
 
-if [ "${DEV_TYPE}" != "tun" ] && [ "${DEV_TYPE}" != "tap" ]; then
-  echo "Device type is not valid, try with tun or tap"
-else
+}
 
+function callback_client_port()
+{
+  if [ $INVALID_CLIENT_PORT -eq 1 ]; then
+    echo "Invalid port"
+    client_port
+  fi
+}
+## CHECK functions ##
+
+function select_interface()
+{
+  INVALID_INTERFACE=0
+  read -p "Name of interface: " INTERFACE_NAME
+
+  CURRENT_INTERFACES=`ls /sys/class/net`
+
+  # Check interfaces
+  for i in $CURRENT_INTERFACES; do
+    if [ "${INTERFACE_NAME}" = "$i" ]; then
+      echo "Invalid interface name..."
+      INVALID_INTERFACE=1
+    fi
+  done
+  callback_interface
+
+}
+
+function select_device()
+{
+
+  INVALID_DEVICE=0
+
+  read -p "Device type: " DEV_TYPE
+
+  if [ "${DEV_TYPE}" != "tun" ] && [ "${DEV_TYPE}" != "tap" ]; then
+    INVALID_DEVICE=1
+  fi
+  callback_device
+
+}
+
+function choose_FQDN()
+{
   read -p "IP/FQDN of your VPN server: " VPN_SERVER_FQDN
+  server_port
 
+}
+
+function server_port()
+{
   VPN_SERVER_PORT=`netstat -putan4 | grep openvpn | cut -d ':' -f2 | awk '{print $1}'`
+  client_port
 
+}
+
+function client_port()
+{
   CLIENT_PORT=1195
+  INVALID_CLIENT_PORT=0
   read -p "Client port default 1195: " CLIENT_PORT
 
-fi
+  if [[ ! $CLIENT_PORT =~ ^-?[0-9]+$ ]]; then
+        INVALID_CLIENT_PORT=1
+  fi
+
+}
+
+function main()
+{
+  # Check user
+  CURRENT_USER=`whoami`
+  if [ "${CURRENT_USER}" = "root" ]; then
+    select_interface
+  else
+    echo -e "Please, launch this script like \"sudo\", example:\nsudo ./VCM"
+  fi
+
+}
+
+# Start program
+main
